@@ -1,50 +1,74 @@
-import time
 import csv
-import I2C_LCD_driver as lcd
-import keypad_driver
-import math
+import I2C_LCD_driver
 import datetime
 import menu
 import scrolling_display
+
 lcd = I2C_LCD_driver.lcd()
 lcd.lcd_clear()
 
+ROW_PINS = [5, 6, 13, 19]
+COL_PINS = [12, 16, 20, 21]
+KEYPAD_LAYOUT = [
+    ['1', '2', '3'],
+    ['4', '5', '6'],
+    ['7', '8', '9'],
+    ['*', '0', '#']
+]
 
-while True:
-    total_order = ""
-    total_price = ""
-    order_done = False
-    #choose which stall
-    if order_done == False
+lcd_keypad = scrolling_display.LCDKeypad(ROW_PINS, COL_PINS, KEYPAD_LAYOUT)
+
+def get_order_from_stall(stall_no):
+    """Handles ordering from a specific stall."""
+    total_order, total_price = "", 0
+    stall = menu.stalls[stall_no]
+    
+    while True:
+        stall_foods = " | ".join(f"{i+1}. {food} ${price:.2f}" for i, (food, price) in enumerate(stall.items()))
+        order_food = lcd_keypad.scroll_texts_for_keypress("Choose an item to order", stall_foods)
+        
+        quantity = int(lcd_keypad.scroll_texts_for_keypress("How many?", f"Order for {order_food} - {stall[order_food]:.2f}"))
+        total_order += f"{order_food} x{quantity}, "
+        total_price += stall[order_food] * quantity
+        
+        if lcd_keypad.scroll_texts_for_keypress("Order more from this stall?", "A - Yes | B - No") == "B":
+            break
+    
+    return total_order.strip(", "), total_price
+
+def save_order(orders):
+    """Saves the order details to separate CSV files per stall."""
+    for stall_no, (total_order, total_price) in orders.items():
+        with open(f"stall{stall_no}.csv", mode="a", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow([stall_no, total_order, total_price, datetime.datetime.now(), 0])
+
+def main():
+    orders = {}
+    while True:
         stall = menu.stalls
-        stall_no = scrolling_display.scroll_texts_for_keypress("Welcome! Choose a stall from 1 to 5",f"1- {stall[1]} 2- {stall[1]} 3- {stall[1]} 4- {stall[1]} 5- {stall[1]}")
-        stall_order = stall_no
-        order_food = scrolling_display.scroll_texts_for_keypress("Choose an item to order"," | ".join(f"{i+1}. {food} ${price:.2f}" for i, (food, price) in enumerate(stall[stall_no].values())))
-
-        quantity = scrolling_display.scroll_texts_for_keypress("how many?", f"order for {stall[stall_no][order_food][0]} - {stall[stall_no][order_food][1]:2f}")
-
-        total_order += stall[stall_no][order_food][0]
-        total_price += (stall[stall_no][order_food][1] * quantity)
-
-        same_stall = scrolling_display.scroll_texts_for_keypress("Do you want to order from the same stall?","A - yes | B - no")
-        if same_stall == "A":
-            order_food = scrolling_display.scroll_texts_for_keypress("Choose an item to order"," | ".join(f"{i+1}. {food} ${price:.2f}" for i, (food, price) in enumerate(stall[stall_no].values())))
-            quantity = scrolling_display.scroll_texts_for_keypress("how many?", f"order for {stall[stall_no][order_food][0]} - {stall[stall_no][order_food][1]:2f}")
-            total_order += stall[stall_no][order_food][0]
-            total_price += (stall[stall_no][order_food][1] * quantity)
-            same_stall = scrolling_display.scroll_texts_for_keypress("Do you want to order from the same stall?","A - yes | B - no")
-        else:
-            check = scrolling_display.scroll_texts_for_keypress("Do you want to order from another stall?","A - yes | B - no")
-            if check == "B":
-                end_order = scrolling_display.scroll_texts_for_keypress("Do you want to end ordering?","A - yes | B - no")
-                if end_order == "A":
-                    order_done = True
-                    data_row = [stall_no, total_order, total_price, datetime.now()]
-                    with open(f"stall{stall_no}.csv", mode="a", newline="") as file:
-                        writer = csv.writer(file)
-                        writer.writerow(data_row) 
+        stall_no = lcd_keypad.scroll_texts_for_keypress(
+            "Welcome! Choose a stall from 1 to 5",
+            " | ".join(f"{i+1}- {stall[i+1]}" for i in range(5))
+        )
+        
+        total_order, total_price = get_order_from_stall(stall_no)
+        orders[stall_no] = (total_order, total_price)
+        
+        while lcd_keypad.scroll_texts_for_keypress("Order from another stall?", "A - Yes | B - No") == "A":
+            stall_no = lcd_keypad.scroll_texts_for_keypress(
+                "Choose another stall",
+                " | ".join(f"{i+1}- {stall[i+1]}" for i in range(5))
+            )
+            extra_order, extra_price = get_order_from_stall(stall_no)
+            if stall_no in orders:
+                orders[stall_no] = (orders[stall_no][0] + f", {extra_order}", orders[stall_no][1] + extra_price)
             else:
-                data_row = [stall_no, total_order, total_price, datetime.now()]
-                with open(f"stall{stall_no}.csv", mode="a", newline="") as file:
-                        writer = csv.writer(file)
-                        writer.writerow(data_row) 
+                orders[stall_no] = (extra_order, extra_price)
+        
+        if lcd_keypad.scroll_texts_for_keypress("End ordering?", "A - Yes | B - No") == "A":
+            save_order(orders)
+            break
+        
+if __name__ == "__main__":
+    main()
