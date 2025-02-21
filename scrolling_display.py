@@ -34,15 +34,13 @@ class LCDKeypad:
 
 # Example usage (if running standalone)
 if __name__ == "__main__":
-    ROW_PINS = [5, 6, 13, 19]
-    COL_PINS = [12, 16, 20, 21]
-    KEYPAD_LAYOUT = [
-        ['1', '2', '3'],
-        ['4', '5', '6'],
-        ['7', '8', '9'],
-        ['*', '0', '#']
-    ]
-    
-    lcd_keypad = LCDKeypad(ROW_PINS, COL_PINS, KEYPAD_LAYOUT)
+    MATRIX=[ [1,2,3],
+            [4,5,6],
+            [7,8,9],
+            ['*',0,'#']] #layout of keys on keypad
+    ROW=[6,20,19,13] #row pins
+    COL=[12,5,16] #column pins
+        
+    lcd_keypad = LCDKeypad(ROW, COL, MATRIX)
     key_pressed = lcd_keypad.scroll_texts_for_keypress("Hello, this is a longer test message!", "Press any key to continue.")
     print("Key Pressed:", key_pressed)
