@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Numbers</title>
+    <style>
+        h1 {
+            font-size: 24px;
+            text-align: center;
+        }
+        #number-list {
+            list-style-type: none;
+            padding: 0;
+            text-align: center;
+        }
+        #number-list li {
+            font-size: 32px;  /* Large font size */
+            font-weight: bold; /* Bold text */
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Orders to Collect</h1>
+    <ul id="number-list"></ul>
+
+    <script>
+        const eventSource = new EventSource("/stream");
+        eventSource.onmessage = function(event) {
+            let list = document.getElementById("number-list");
+            list.innerHTML = ""; // Clear previous list
+            let numbers = JSON.parse(event.data);
+            numbers.forEach(num => {
+                let newItem = document.createElement("li");
+                newItem.textContent = num;
+                list.appendChild(newItem);
+            });
+        };
+    </script>
+</body>
+</html>

@@ -4,6 +4,8 @@ import datetime
 import menu
 import scrolling_display
 
+import app
+
 lcd = I2C_LCD_driver.lcd()
 lcd.lcd_clear()
 
@@ -31,7 +33,7 @@ def get_order_from_stall(stall_no):
         total_order += f"{order_food} x{quantity}, "
         total_price += stall[order_food] * quantity
         
-        if lcd_keypad.scroll_texts_for_keypress("Order more from this stall?", "A - Yes | B - No") == "B":
+        if lcd_keypad.scroll_texts_for_keypress("Order more from this stall?", "* - Yes | # - No") == "#":
             break
     
     return total_order.strip(", "), total_price
@@ -55,7 +57,7 @@ def main():
         total_order, total_price = get_order_from_stall(stall_no)
         orders[stall_no] = (total_order, total_price)
         
-        while lcd_keypad.scroll_texts_for_keypress("Order from another stall?", "A - Yes | B - No") == "A":
+        while lcd_keypad.scroll_texts_for_keypress("Order from another stall?", "* - Yes | # - No") == "*":
             stall_no = lcd_keypad.scroll_texts_for_keypress(
                 "Choose another stall",
                 " | ".join(f"{i+1}- {stall[i+1]}" for i in range(5))
@@ -66,7 +68,7 @@ def main():
             else:
                 orders[stall_no] = (extra_order, extra_price)
         
-        if lcd_keypad.scroll_texts_for_keypress("End ordering?", "A - Yes | B - No") == "A":
+        if lcd_keypad.scroll_texts_for_keypress("End ordering?", "* - Yes | # - No") == "*":
             save_order(orders)
             break
         
